@@ -77,7 +77,7 @@ class kiaraNoise(tf.keras.utils.Sequence):
             ori_gt.append(_gt_file)
 
             _en_file = cv2.imread(en_file,0)
-            _en_file = cv2.resize(_en_file,(50,50), interpolation=cv2.INTER_AREA)/255
+            _en_file = 1-(cv2.resize(_en_file,(50,50), interpolation=cv2.INTER_AREA)/255)
             _en_file = _en_file.reshape(50,50,1)
             style_gt.append(_en_file)
             if self.debug:

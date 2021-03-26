@@ -147,11 +147,20 @@ def myModel():
     return model
 
 if __name__ == "__main__":
+    
     import os
     os.environ['CUDA_VISIBLE_DEVICES']="-1"
 
     model = myModel()
     model.summary()
+    variables_names = [v.name for v in tf.trainable_variables()]
+    with tf.Session() as sess:
+        values = sess.run(variables_names)
+        for k, v in zip(variables_names, values):
+            print("Variable: ", k)
+            print("Shape: ", v.shape)
+            #print(v)
+        #exit()
     for layer in model.layers:
         #print("ayaya")
         if not layer.trainable:

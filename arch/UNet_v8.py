@@ -148,16 +148,16 @@ def myModel():
     conv1_ = InverseResnetIdentityBlock(7,[64,64,64])(conv2_)
     conv0_ = InverseResnetIdentityBlock(9,[64,64,64])(conv1_)
     #conv0_ = tf.keras.layers.Add()([conv0,conv0_])
-    e_output = tf.keras.layers.Conv2DTranspose(1,9,strides=(1,1), padding="valid",dilation_rate=(1,1), activation='relu', name='enhancementOutput')(conv0_)
+    e_output = tf.keras.layers.Conv2DTranspose(1,9,strides=(1,1), padding="valid",dilation_rate=(1,1), activation='relu')(conv0_)
     inputs_ = tf.keras.layers.Add()([edge,e_output])
-    inputs_ = tf.keras.layers.Conv2D(1, (3,3), padding='same')(inputs_)
+    inputs_ = tf.keras.layers.Conv2D(64,9 , padding='same')(inputs_)
 
     #inputs_ = tf.keras.layers.Conv2DTranspose(1,3,strides=(1,1), padding="valid",dilation_rate=(1,1), activation='relu')(conv0_0)
 
-    #e_output = tf.keras.layers.Conv2D(1,1,strides=(1,1), padding="valid",dilation_rate=(1,1), activation='relu', name='enhancementOutput')(inputs_)
+    output = tf.keras.layers.Conv2D(1,3,strides=(1,1), padding="same",dilation_rate=(1,1), activation='relu', name='enhancementOutput')(inputs_)
     #conv5 = ResnetIdentityBlock(3,[256,512,512])(conv4_)
     
-    model = tf.keras.models.Model(inputs=inputs, outputs = [inputs_])
+    model = tf.keras.models.Model(inputs=inputs, outputs = [output])
     return model
 
 if __name__ == "__main__":
@@ -167,6 +167,14 @@ if __name__ == "__main__":
 
     model = myModel()
     model.summary()
+    variables_names = [v.name for v in tf.trainable_variables()]
+    with tf.Session() as sess:
+        values = sess.run(variables_names)
+        for k, v in zip(variables_names, values):
+            print("Variable: ", k)
+            print("Shape: ", v.shape)
+            #print(v)
+        #exit()
     for layer in model.layers:
         #print("ayaya")
         if not layer.trainable:

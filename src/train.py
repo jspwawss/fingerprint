@@ -8,6 +8,23 @@ import sys
 sys.path.append(os.getcwd())
 from opts import parser
 args = parser.parse_args()
+save_name = args.model
+#save_name = r'fingerNet_ljyBlur_v2.0'
+dir_name = list()
+dir_name.extend([args.dataset, args.model, args.save_annotation])
+if args.debug:
+    dir_name.append('debug')
+    print_rate = 1
+    os.environ['CUDA_VISIBLE_DEVICES']="-1"
+else:
+    print_rate = args.print_rate
+    os.environ['CUDA_VISIBLE_DEVICES']="0"
+print(dir_name)
+for d_name in dir_name:
+    if len(d_name) == 0:
+        dir_name.remove(d_name)
+save_path = os.path.join(args.save_path, '_'.join(dir_name))
+
 dataset = __import__(args.datasetfilename, fromlist=[args.dataset])
 dataset = getattr(dataset, args.dataset)
 #from dataset import ljyBlur
@@ -28,21 +45,7 @@ def main():
     global epochs
     global print_rate
     epochs = args.epochs if not args.debug else 50
-    save_name = args.model
-    #save_name = r'fingerNet_ljyBlur_v2.0'
-    dir_name = list()
-    dir_name.extend([args.dataset, args.model, args.save_annotation])
-    if args.debug:
-        dir_name.append('debug')
-        print_rate = 1
-        os.environ['CUDA_VISIBLE_DEVICES']="-1"
-    else:
-        print_rate = args.print_rate
-    print(dir_name)
-    for d_name in dir_name:
-        if len(d_name) == 0:
-            dir_name.remove(d_name)
-    save_path = os.path.join(args.save_path, '_'.join(dir_name))
+    
     #save_path = os.path.join(r"/home/share/Han/novatek",save_name)
     print("{0:-^50}".format(save_path))
     if args.dataset_path:
@@ -130,7 +133,7 @@ def train(model=None, dataset=None, val_dataset=None, epochs=int(10)):
     lambda_s = args.lambda_style
     inputs = tf.placeholder(tf.float32, shape=[args.batch_size, 50,50,1], name='input')
 
-    saver = tf.train.Saver(restore_sequentially=True)
+    saver = tf.train.Saver(var_list = model.trainable_variables, save_relative_paths = args.save_path)
 
 
     style = tf.placeholder(tf.float32, shape=[args.batch_size, 50,50,1])
@@ -188,7 +191,8 @@ def train(model=None, dataset=None, val_dataset=None, epochs=int(10)):
                 #    print("[epoch {}/{}] step: {}/{}, loss: {}".format(epoch, epochs, step, len(val_dataset), np.array(val_loss_).mean()))
                 val_loss += np.array(val_loss_).mean()
             val_losses.append(val_loss/len(val_dataset))
-            model.save_weights(os.path.join(save_path, save_name + r"_{epoch}-{loss:.2f}.h5").format(epoch=epoch, loss=val_losses[-1]))
+            model.save_weights(os.path.join(save_path, save_name + r"_{epoch}-{loss:.2f}.pb").format(epoch=epoch, loss=val_losses[-1]))
+            #saver.save(sess, os.path.join(save_path, save_name + r"_{epoch}-{loss:.2f}.pb").format(epoch=epoch, loss=val_losses[-1]))
             print("[epoch {}/{}]  loss: {}".format(epoch, epochs, val_losses[-1]))
             with open(os.path.join(save_path, 'history.txt'), 'a') as txt:
                 txt.write('{epoch},{loss},{val_loss}\n'.format(epoch=epoch, loss=train_losses[-1], val_loss=val_losses[-1]))

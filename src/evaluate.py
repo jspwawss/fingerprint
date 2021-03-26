@@ -24,7 +24,7 @@ parser.add_argument('--datasetfilename', type=str, default='dataset')
 parser.add_argument('--dataset', type=str, default='kiaraNoise')
 
 args = parser.parse_args()
-
+#tf.enable_eager_execution()
 
 if args.using_CPU:
     print('using CPU')

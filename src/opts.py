@@ -16,7 +16,7 @@ parser.add_argument("--singleInOut", action='store_true')
 parser.add_argument('--batch_size', type=int, default=10)
 parser.add_argument("--debug", action="store_true")
 
-parser.add_argument("--losses",  )
+parser.add_argument("--losses", action="append" )
 parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--beta_1', type=float, default=0.9)
 parser.add_argument('--beta_2', type=float, default=0.999)
