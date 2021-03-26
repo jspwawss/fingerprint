@@ -171,11 +171,11 @@ def train(model=None, dataset=None, val_dataset=None, epochs=int(10)):
          
                 feed_dict = {inputs:x_batch_train["input"], style:y_batch_train['enhancementOutput']['style_gt'], content:y_batch_train['enhancementOutput']['ori_gt'] }
                 #train_loss_, _, train_loss_f, train_loss_s, train_loss_tv, mse = sess.run([loss, train_step, loss_f, loss_s, loss_tv, mse], feed_dict=feed_dict)
-                train_loss_, _, train_ploss = sess.run([losses, train_step, ploss], feed_dict=feed_dict)
+                train_loss_, _ = sess.run([losses, train_step], feed_dict=feed_dict)
                 #logits = model(x_batch_train, training=True)
                 #loss_value = loss_fn(y_batch_train, logits)
                 if step % print_rate == 0:
-                    print("[epoch {}/{}] step: {}/{}, loss: {}|{}".format(epoch, epochs, step, len(dataset), train_loss_, train_ploss))
+                    print("[epoch {}/{}] step: {}/{}, loss: {}".format(epoch, epochs, step, len(dataset), train_loss_))
                     #print("[epoch {}/{}] step: {}/{}, loss: {}|{}|{}|{}|{}".format(epoch, epochs, step, len(dataset), train_loss_, train_loss_f, train_loss_s, train_loss_tv, mse))
                 train_loss += np.array(train_loss_).mean()
             train_losses.append(train_loss/len(dataset))

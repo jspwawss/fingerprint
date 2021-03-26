@@ -113,11 +113,25 @@ class InverseResnetIdentityBlock(tf.keras.Model):
 
         x += input_tensor
         return self.relu(x)
+
+def clip_0_1(image):
+    return tf.clip_by_value(image, clip_value_min=0.0, clip_value_max=1.0)
+
+def high_pass_x_y(image):
+    x_var = image[:, :, 1:, :] - image[:, :, :-1, :]
+    y_var = image[:, 1:, :, :] - image[:, :-1, :, :]
+
+    return x_var, y_var
+
 def myModel():
     #encoder
     #1*50*50 -> 64*48*48
     inputs = tf.keras.layers.Input(shape=(50,50,1,), name="input") 
-    conv0 = tf.keras.layers.Conv2D(64,9,strides=(1,1), padding="valid", activation='relu')(inputs)
+    edges = tf.image.sobel_edges(inputs)
+    edge_x = clip_0_1(edges[...,0])
+    edge_y = clip_0_1(edges[...,1])
+    edge = tf.keras.layers.Add()([edge_x, edge_y])
+    conv0 = tf.keras.layers.Conv2D(64,9,strides=(1,1), padding="valid", activation='relu')(edge)
 
     #conv1 = tf.keras.layers.Conv2D(64,5,strides=(1,1), padding="valid", activation='relu')(conv0)
     conv1 = ResnetIdentityBlock(9,[64,64,64])(conv0)
@@ -135,7 +149,7 @@ def myModel():
     conv0_ = InverseResnetIdentityBlock(9,[64,64,64])(conv1_)
     #conv0_ = tf.keras.layers.Add()([conv0,conv0_])
     e_output = tf.keras.layers.Conv2DTranspose(1,9,strides=(1,1), padding="valid",dilation_rate=(1,1), activation='relu', name='enhancementOutput')(conv0_)
-    inputs_ = tf.keras.layers.Add()([inputs,e_output])
+    inputs_ = tf.keras.layers.Add()([edge,e_output])
     inputs_ = tf.keras.layers.Conv2D(1, (3,3), padding='same')(inputs_)
 
     #inputs_ = tf.keras.layers.Conv2DTranspose(1,3,strides=(1,1), padding="valid",dilation_rate=(1,1), activation='relu')(conv0_0)
@@ -147,6 +161,7 @@ def myModel():
     return model
 
 if __name__ == "__main__":
+
     import os
     os.environ['CUDA_VISIBLE_DEVICES']="-1"
 
@@ -156,7 +171,7 @@ if __name__ == "__main__":
         #print("ayaya")
         if not layer.trainable:
             print(layer)
-    
+        
     dot_img_file = __file__.split('.')[0] + '.png'
     #print( __file__)
     tf.keras.utils.plot_model(model, to_file=dot_img_file, show_shapes=True)
