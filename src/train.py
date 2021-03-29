@@ -1,4 +1,10 @@
 import tensorflow as tf
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+tf.keras.backend.set_session(tf.Session(config=config))
+#import tensorflow.compat.v1 as tf
+#tf.disable_v2_behavior()
 #tf.enable_eager_execution()
 #tf.executing_eagerly()
 import numpy as np
@@ -16,14 +22,17 @@ if args.debug:
     dir_name.append('debug')
     print_rate = 1
     os.environ['CUDA_VISIBLE_DEVICES']="-1"
+    CUDA_VISIBLE_DEVICES = -1
 else:
     print_rate = args.print_rate
     os.environ['CUDA_VISIBLE_DEVICES']="0"
+    CUDA_VISIBLE_DEVICES = 0
 print(dir_name)
 for d_name in dir_name:
     if len(d_name) == 0:
         dir_name.remove(d_name)
 save_path = os.path.join(args.save_path, '_'.join(dir_name))
+
 
 dataset = __import__(args.datasetfilename, fromlist=[args.dataset])
 dataset = getattr(dataset, args.dataset)
@@ -92,11 +101,13 @@ def main():
         val_dataset = dataset(mode='val', debug=args.debug,  batch_size=args.batch_size, )
     #print(train_dataset.__next__())
     #exit()
+    #g = tf.Graph()
+    #with g.as_default():
     train(model=model, dataset=train_dataset,val_dataset= val_dataset, epochs = epochs)
     #evaluate()
     pass
 
-def generate_arrays_from_file(path:str, batch_size=2):
+def generate_arrays_from_file(path, batch_size=2):
     while 1:
         inputList = list()
         outputList = list()
@@ -127,7 +138,14 @@ def train(model=None, dataset=None, val_dataset=None, epochs=int(10)):
     print(epochs)
     print(save_path)
     optimizer = tf.keras.optimizers.Adam(lr=args.lr, beta_1=args.beta_1, beta_2=args.beta_2, )
+    vgg = tf.keras.applications.VGG16(
+    include_top=False, weights='imagenet', input_tensor=None,
+    input_shape=(50,50,3), pooling=None, classes=1000,)
+    vgg.trainable = False
+    layer_output_dict = dict([(layer.name, layer.output) for layer in vgg.layers])
     
+    feature_extractor = tf.keras.Model(inputs=vgg.input, outputs=layer_output_dict)
+    feature_extractor.trainable = False
     lambda_tv = args.lambda_tv
     lambda_f = args.lambda_feat
     lambda_s = args.lambda_style
@@ -144,7 +162,7 @@ def train(model=None, dataset=None, val_dataset=None, epochs=int(10)):
         rgb_style = tf.image.grayscale_to_rgb(style)
         rgb_outputs = tf.image.grayscale_to_rgb(outputs)
         rgb_content = tf.image.grayscale_to_rgb(content)
-        ploss = perceptualLoss(rgb_content,rgb_style,rgb_outputs)
+        ploss = perceptualLoss(feature_extractor,rgb_content,rgb_style,rgb_outputs)
         losses += ploss
     if 'mse' in args.losses:
         mse = lapLoss(content, outputs )

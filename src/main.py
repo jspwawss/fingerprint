@@ -1,11 +1,31 @@
 import tensorflow as tf
-import numpy as np
+from tensorflow.keras import backend as K
 from matplotlib import pyplot as plt
 import os
 import sys
 sys.path.append(os.getcwd())
 from opts import parser
 args = parser.parse_args()
+save_name = args.model
+#save_name = r'fingerNet_ljyBlur_v2.0'
+dir_name = list()
+dir_name.extend([args.dataset, args.model, args.save_annotation])
+if args.debug:
+    dir_name.append('debug')
+    print_rate = 1
+    os.environ['CUDA_VISIBLE_DEVICES']="-1"
+    CUDA_VISIBLE_DEVICES = -1
+else:
+    print_rate = args.print_rate
+    os.environ['CUDA_VISIBLE_DEVICES']="0"
+    CUDA_VISIBLE_DEVICES = 0
+print(dir_name)
+for d_name in dir_name:
+    if len(d_name) == 0:
+        dir_name.remove(d_name)
+save_path = os.path.join(args.save_path, '_'.join(dir_name))
+
+
 dataset = __import__(args.datasetfilename, fromlist=[args.dataset])
 dataset = getattr(dataset, args.dataset)
 #from dataset import ljyBlur
@@ -15,8 +35,10 @@ model = model()
 import json
 from utils.LapLoss import lapLoss
 from utils.crossEntropy import crossEntropy
-#tf.enable_eager_execution()
+from utils.PerceptualLoss import perceptualLoss
 print("debug=",args.debug)
+print('losses=',args.losses)
+from utils.total_variation_regularization import total_variation_regularization, gram_matrix
 #exit()
 def main():
     global train_dir, val_dir
@@ -50,27 +72,7 @@ def main():
         val_dir = args.val_path
 
 
-    '''
-    datagen = tf.keras.preprocessing.image.ImageDataGenerator(
-        #featurewise_center=True,
-        #featurewise_std_normalization=True,
-        validation_split=0.0,
-        rescale=1./255,
-    )
-    train_dataset = tf.keras.preprocessing.image.DirectoryIterator(
-        train_dir,
-        datagen,
-        target_size=(61,61),
-        color_mode="rgb",
-        batch_size=1,
-        shuffle=True,
-        #subset="training",
-        #class_mode='binary',
-        class_mode='categorical',
-    )
-       
-    train_dataset = generate_arrays_from_file(train_dir)
-    '''
+
     if len(args.dataset_path) > 0:
         train_dataset = dataset(mode="train" ,debug = args.debug , batch_size=args.batch_size, dirpath = args.dataset_path )
         val_dataset = dataset(mode='val', debug=args.debug,  batch_size=args.batch_size, dirpath = args.dataset_path)
@@ -119,7 +121,31 @@ def train(model=None, dataset=None, val_dataset=None, epochs=int(10)):
     #loss_object  = {"orientationOutput": tf.keras.losses.categorical_crossentropy,"enhancementOutput": lapLoss}
     loss_object  = {"enhancementOutput": lapLoss}
     print("*"*50)
-    optimizer = tf.keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, )
+    optimizer = tf.keras.optimizers.Adam(lr=args.lr, beta_1=args.beta_1, beta_2=args.beta_2 )
+    if 'enMSE' in args.losses:
+        #en_gt = tf.keras.layers.Input(shape=(args.input_shape, args.input_shape,1,), name='enhanced_gt')
+        en_gt = K.placeholder(shape=(args.batch_size, args.input_shape, args.input_shape,1,), name='enhanced_gt')
+        print(model.get_layer('enhancementOutput').output)
+        enMSE = lapLoss(en_gt,model.get_layer('enhancementOutput').output)
+        model.add_loss(enMSE)
+    if 'perceptual' in args.losses:
+        content = tf.keras.Input(shape=(args.input_shape, args.input_shape, 1), name='content')
+        p_en_gt = tf.keras.Input(shape=(args.input_shape, args.input_shape, 1), name='en_gt')
+        vgg = tf.keras.applications.VGG16(
+        include_top=False, weights='imagenet', input_tensor=None,
+        input_shape=(50,50,3), pooling=None, classes=1000,)
+        vgg.trainable = False
+        layer_output_dict = dict([(layer.name, layer.output) for layer in vgg.layers])
+        
+        feature_extractor = tf.keras.Model(inputs=vgg.input, outputs=layer_output_dict, name='feature_extractor')
+        feature_extractor.trainable = False
+
+        rgb_style = tf.image.grayscale_to_rgb(en_gt)
+        rgb_outputs = tf.image.grayscale_to_rgb(model.get_layer['enhancementOutput'].outputs)
+        rgb_content = tf.image.grayscale_to_rgb(content)
+        ploss = perceptualLoss(feature_extractor,rgb_content,rgb_style,rgb_outputs)
+        model.add_loss(ploss)
+    
     #model.compile(loss = loss_object, loss_weights=[1.0,1.0], optimizer=optimizer,)
     model.compile(loss = loss_object, optimizer=optimizer,)
     #model.compile(optimizer=optimizer,)

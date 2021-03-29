@@ -1,13 +1,17 @@
 echo "start training"
 python src/main.py --save_path=/home/nmsoc/FPR/Han/fingerprint/checkpoint/ \
---epoch=50 --model=UNet_v6 \
+--epoch=50 --model=UNet_v8 \
 --model_name=myModel \
---dataset_path=/home/nmsoc/FPR/FVC2000/noise_patch/Db{part}_{mode}/ \
---dataset=kiaraNoise \
+--dataset_path=/home/share/FVC/FVC2000/patch/Db{part}_{mode}/ \
+--dataset=kiaraNoise4perceptual \
 --batch_size=10 \
---save_annotation='v1' \
---debug \
-#--datasetfilename='dataset4perceptual' \
+--save_annotation='test' \
+--losses=mse \
+--losses=enMSE \
+--losses=perceptual \
+--datasetfilename='dataset' \
+#--debug \
+#
 
 
 echo "test pass ^^"

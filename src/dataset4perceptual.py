@@ -43,6 +43,7 @@ class kiaraNoise(tf.keras.utils.Sequence):
 
     def __len__(self):
         #print("__len__")
+        return 10
         if not self.debug:
             return len(self.data) // self.batch_size
         else:
@@ -87,10 +88,12 @@ class kiaraNoise(tf.keras.utils.Sequence):
 
         #noise = np.asarray([(cv2.resize(cv2.imread(noise_file, 0),(50,50),interpolation=cv2.INTER_AREA)/255).reshape(50,50,1) for noise_file in noise_files])
         #gt = np.asarray([(cv2.resize(cv2.imread(gt_file, 0),(50,50),interpolation = cv2.INTER_AREA)/255).reshape(50,50,1) for gt_file in gt_files])
-        noise = np.asarray(noise, dtype=np.float32)
-        ori_gt = np.asarray(ori_gt,dtype=np.float32)
-        style_gt = np.asarray(style_gt, dtype=np.float32)
-        
+        #noise = np.asarray(noise, dtype=np.float32)
+        #ori_gt = np.asarray(ori_gt,dtype=np.float32)
+        #style_gt = np.asarray(style_gt, dtype=np.float32)
+        noise = tf.constant(noise, dtype=tf.float32)
+        ori_gt = tf.constant(ori_gt,dtype=tf.float32)
+        style_gt = tf.constant(style_gt, dtype=tf.float32)
         #print("1111")
         ##return ({"input": noise}, {"orientationOutput": np.array([[0.]*20]*self.batch_size).reshape(-1,20), "enhancementOutput": gt})
         return ({"input": noise}, {"enhancementOutput": {"ori_gt": ori_gt, "style_gt": style_gt}})

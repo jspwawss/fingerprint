@@ -128,11 +128,13 @@ def myModel():
     #1*50*50 -> 64*48*48
     inputs = tf.keras.layers.Input(shape=(50,50,1,), name="input") 
     edges = tf.image.sobel_edges(inputs)
-    edge_x = clip_0_1(edges[...,0])
-    edge_y = clip_0_1(edges[...,1])
+    #edge_x = clip_0_1(edges[...,0])
+    #edge_y = clip_0_1(edges[...,1])
+    edge_x = edges[...,0]
+    edge_y = edges[...,1]
     edge = tf.keras.layers.Add()([edge_x, edge_y])
     conv0 = tf.keras.layers.Conv2D(64,9,strides=(1,1), padding="valid", activation='relu')(edge)
-
+    conv0 = tf.keras.layers.BatchNormalization(axis=-1)(conv0)
     #conv1 = tf.keras.layers.Conv2D(64,5,strides=(1,1), padding="valid", activation='relu')(conv0)
     conv1 = ResnetIdentityBlock(9,[64,64,64])(conv0)
     conv2 = ResnetIdentityBlock(7,[64,64,64])(conv1)
@@ -148,13 +150,15 @@ def myModel():
     conv1_ = InverseResnetIdentityBlock(7,[64,64,64])(conv2_)
     conv0_ = InverseResnetIdentityBlock(9,[64,64,64])(conv1_)
     #conv0_ = tf.keras.layers.Add()([conv0,conv0_])
-    e_output = tf.keras.layers.Conv2DTranspose(1,9,strides=(1,1), padding="valid",dilation_rate=(1,1), activation='relu')(conv0_)
+    e_output = tf.keras.layers.Conv2DTranspose(64,9,strides=(1,1),dilation_rate=(1,1), padding="valid", activation='relu')(conv0_)
     inputs_ = tf.keras.layers.Add()([edge,e_output])
-    inputs_ = tf.keras.layers.Conv2D(64,9 , padding='same')(inputs_)
+    
+    inputs_ = tf.keras.layers.Conv2D(64,3,strides=(1,1) ,dilation_rate=2, padding='same',activation='relu',)(inputs_)
+    inputs_ = tf.keras.layers.BatchNormalization(axis=-1)(inputs_)
 
     #inputs_ = tf.keras.layers.Conv2DTranspose(1,3,strides=(1,1), padding="valid",dilation_rate=(1,1), activation='relu')(conv0_0)
 
-    output = tf.keras.layers.Conv2D(1,3,strides=(1,1), padding="same",dilation_rate=(1,1), activation='relu', name='enhancementOutput')(inputs_)
+    output = tf.keras.layers.Conv2D(1,3,strides=(1,1),dilation_rate=2, padding="same", activation='relu', name='enhancementOutput')(inputs_)
     #conv5 = ResnetIdentityBlock(3,[256,512,512])(conv4_)
     
     model = tf.keras.models.Model(inputs=inputs, outputs = [output])

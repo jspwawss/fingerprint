@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+from tensorflow.keras import backend as K
 #do NOT enable, will crash while saving model
 #tf.enable_eager_execution()
 '''
@@ -13,6 +14,7 @@ class LapLoss(tf.keras.losses.Loss):
         preLap = self.con2d(y_pred)
         return  self.alpha * tf.keras.losses.mean_squared_error(trueLap, preLap) + (1-self.alpha)*tf.keras.losses.MeanSquaredError(y_true,y_pred)
 '''
+
 def lapLoss(y_true,y_pred):
     
     #alpha = tf.keras.initializers.Constant(0.2)
@@ -26,8 +28,11 @@ def lapLoss(y_true,y_pred):
     #conv2d.set_weights(kernel)
     #trueLap = conv2d(y_true)
     #preLap = conv2d(y_pred)
-    trueLap = tf.nn.conv2d(y_true, filter=kernel, strides=[1,1,1,1], padding='SAME')
-    preLap = tf.nn.conv2d(y_pred, filter=kernel, strides=[1,1,1,1], padding='SAME')
+    #print('in laploss')
+    #print(y_true)
+    #print(y_pred)
+    trueLap = tf.nn.conv2d(y_true, kernel, strides=[1,1,1,1], padding='SAME')
+    preLap = tf.nn.conv2d(y_pred, kernel, strides=[1,1,1,1], padding='SAME')
     trueLap.trainable = False
     preLap.trainable=False
     #y_true = y_true['enhancementOutput']['ori_gt']
@@ -55,6 +60,20 @@ def lapLoss(y_true,y_pred):
     
     return alpha * lap+ mse*(1-alpha)
 
+def total_loss(y_true, y_pred): 
+    alpha, beta, gamma = 0.2, 0.8, 0.5
+    mse = tf.keras.losses.MeanSquaredError()(y_true, y_pred)
+    
+    lapKernel = K.constant([[-1,-1,-1],[-1,8,-1],[-1,-1,-1]],shape = [3, 3, 1, 1])
+    
+
+    trueLap = K.conv2d(y_true, lapKernel)
+    predLap = K.conv2d(y_pred, lapKernel)
+    lap = K.sum(K.square(trueLap - predLap), axis=-1)
+    
+    loss = (1-alpha) * mse + alpha * lap
+    #loss = mse
+    return loss
 
 if __name__ == "__main__":
     import numpy as np

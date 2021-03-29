@@ -153,14 +153,15 @@ if __name__ == "__main__":
 
     model = myModel()
     model.summary()
-    variables_names = [v.name for v in tf.trainable_variables()]
-    with tf.Session() as sess:
-        values = sess.run(variables_names)
-        for k, v in zip(variables_names, values):
+    variables_names = [v.name for v in model.trainable_weights]
+    with tf.GradientTape() as tape:
+        #values = sess.run(variables_names)
+        for k in zip(variables_names):
             print("Variable: ", k)
-            print("Shape: ", v.shape)
+            #print("Shape: ", k.name)
             #print(v)
         #exit()
+    print('*'*50)
     for layer in model.layers:
         #print("ayaya")
         if not layer.trainable:

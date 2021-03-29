@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
+
 def preprocess_image(image_path, img_ncols=50, img_nrows=50):
    
     # Util function to open, resize and format pictures into appropriate tensors
@@ -81,20 +82,15 @@ def total_variation_loss(x):
     '''
     return tf.reduce_sum(tf.image.total_variation(x))
 
-def perceptualLoss(ori_gt, style_gt, y_pred, total_variation_weight = 1e-6,style_weight = 1e-6,content_weight = 2.5e-8):
-    vgg = tf.keras.applications.VGG16(
-    include_top=False, weights='imagenet', input_tensor=None,
-    input_shape=(50,50,3), pooling=None, classes=1000,)
-    vgg.trainable = False
-    layer_output_dict = dict([(layer.name, layer.output) for layer in vgg.layers])
-    batch_size = ori_gt.get_shape()[0]
-    feature_extractor = tf.keras.Model(inputs=vgg.input, outputs=layer_output_dict)
+
+def perceptualLoss(feature_extractor,ori_gt, style_gt, y_pred, total_variation_weight = 1e-6,style_weight = 1e-6,content_weight = 2.5e-8):
+    
     style_layer_names = ['block1_conv2','block2_conv2','block3_conv2','block4_conv2','block5_conv2']
     content_layer_name = 'block5_conv2'
-    feature_extractor.trainable = False
-
+    #feature_extractor.trainable = False
+    batch_size = ori_gt.get_shape()[0]
     input_tensor = tf.concat([ori_gt, style_gt, y_pred], axis=0)
-    features = feature_extractor(input_tensor)
+    features = feature_extractor(input_tensor, training=False)
 
     loss = tf.zeros(shape=())
     layer_features = features[content_layer_name]

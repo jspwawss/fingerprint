@@ -13,7 +13,7 @@ import cv2
 parser.add_argument("--save_path", type=str, default=r"/home/share/Han/novatek")
 parser.add_argument("--save_weight_only", action='store_true')
 parser.add_argument("--custom_objects",action='append',)
-parser.add_argument('--testing_data',type=str, default='/home/nmsoc/FPR/FVC2000/noise_patch/Db{part}_{mode}/')
+parser.add_argument('--testing_data',type=str,  )
 parser.add_argument('--checkpoint_path', type=str, default=r'/home/share/Han/novatek/fingerNet_ljyBlur_v1.3_lap/fingerNet_ljyBlur_v1.3_97-0.06.ckpt')
 parser.add_argument('--model', type=str, default='')
 parser.add_argument('--model_name', type=str, default='myModel')
@@ -22,6 +22,8 @@ parser.add_argument("--debug", action="store_true")
 parser.add_argument("--using_CPU", action="store_true")
 parser.add_argument('--datasetfilename', type=str, default='dataset')
 parser.add_argument('--dataset', type=str, default='kiaraNoise')
+
+
 
 args = parser.parse_args()
 #tf.enable_eager_execution()
@@ -52,17 +54,18 @@ elif 'kiaraBlurAndNoise' in args.testing_data:
     r'/home/nmsoc/FPR/FVC2000/blur/Db4_b/GT/101_1_0.png',	r'/home/nmsoc/FPR/FVC2000/noise_patch/Db4_b/blur_and_noise_in/101_1_0.png',
     ]
 elif 'kiara' in args.testing_data:
-    testimgs = [r'/home/nmsoc/FPR/FVC2000/noise_patch/Db1_b/GT/101_1_2.png',	r'/home/nmsoc/FPR/FVC2000/noise_patch/Db1_b/noise_in/101_1_2.png',
-    r'/home/nmsoc/FPR/FVC2000/noise_patch/Db2_b/GT/101_1_10.png',	r'/home/nmsoc/FPR/FVC2000/noise_patch/Db2_b/noise_in/101_1_10.png',
-    r'/home/nmsoc/FPR/FVC2000/noise_patch/Db3_b/GT/101_1_28.png',	r'/home/nmsoc/FPR/FVC2000/noise_patch/Db3_b/noise_in/101_1_28.png',
-    r'/home/nmsoc/FPR/FVC2000/blur/Db4_b/GT/101_1_0.png',	r'/home/nmsoc/FPR/FVC2000/noise_patch/Db4_b/noise_in/101_1_0.png',
+    testimgs = [r'/home/share/FVC/FVC2000/noise_patch/Db1_b/GT/101_1_2.png',	r'/home/share/FVC/FVC2000/noise_patch/Db1_b/noise_in/101_1_2.png',
+    r'/home/share/FVC/FVC2000/noise_patch/Db2_b/GT/101_1_10.png',	r'/home/share/FVC/FVC2000/noise_patch/Db2_b/noise_in/101_1_10.png',
+    r'/home/share/FVC/FVC2000/noise_patch/Db3_b/GT/101_1_28.png',	r'/home/share/FVC/FVC2000/noise_patch/Db3_b/noise_in/101_1_28.png',
+    r'/home/share/FVC/FVC2000/blur/Db4_b/GT/101_1_0.png',	r'/home/share/FVC/FVC2000/noise_patch/Db4_b/noise_in/101_1_0.png',
     ]
 elif '{part}' in args.testing_data:
     dataset = __import__(args.datasetfilename)
     dataset = getattr(dataset, args.dataset)
     testimgs = dataset(mode="train" ,debug = args.debug , batch_size=1,dirpath = args.testing_data )
 else:
-    testimgs = args.testing_data
+    testimgs = [args.testing_data]
+    print(testimgs)
 if not args.debug:
     if len(testimgs) == 8:
         skip_ratio = 2
@@ -72,13 +75,24 @@ if not args.debug:
         start = 0
     for testimg in testimgs[start::skip_ratio]:
         #testimg = r'/home/share/FVC/FVC2000/blur/Db1_b/GT/101_1_2.png'
-        img = (cv2.resize(cv2.imread(testimg, 0),(args.input_shape, args.input_shape),interpolation = cv2.INTER_AREA)/255).reshape(1,args.input_shape, args.input_shape,1)
+        print(testimg)
+        testimg = testimg.replace('noise_patch', 'patch')
+        #print(cv2.imread(testimg,))
+        ori_img = cv2.imread(testimg, 0)
+        img = 255 - ori_img
+        gray = img
+        clahe = cv2.createCLAHE(clipLimit=2.0,tileGridSize=(8,8))
+        dst = clahe.apply(gray)
+        img = (cv2.resize(ori_img,(args.input_shape, args.input_shape),interpolation = cv2.INTER_AREA)/255).reshape(1,args.input_shape, args.input_shape,1)
         if "fingerNet" in args.model:
             output = model.predict(img)[1]
         else:
             output = model.predict(img)
         print(output.shape)
-        cv2.imwrite(os.path.join(os.getcwd(),'testData','_'.join([args.model, args.testing_data,'pred', ''])+testimg.split('/')[-1]), output[0]*255)
+        print(os.path.join(os.getcwd(),'testData','_'.join([args.model,'pred', ''])+testimg.split('/')[-1]))
+        cv2.imwrite(os.path.join(os.getcwd(),'testData','_'.join([args.model,'pred', ''])+testimg.split('/')[-1]), output[0]*255)
+        cv2.imwrite(os.path.join(os.getcwd(),'testData','_'.join([args.model,'dst', ''])+testimg.split('/')[-1]), dst*255)
+        cv2.imwrite(os.path.join(os.getcwd(),'testData','_'.join([args.model,'ori', ''])+testimg.split('/')[-1]), ori_img)
     
 else:
     for step, (x_batch_train, y_batch_train) in enumerate(testimgs):

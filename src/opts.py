@@ -14,6 +14,7 @@ parser.add_argument('--dataset', type=str, default='kiaraNoise')
 parser.add_argument('--datasetfilename', type=str, default='dataset')
 parser.add_argument("--singleInOut", action='store_true')
 parser.add_argument('--batch_size', type=int, default=10)
+parser.add_argument("--input_shape", type=int, default=50)
 parser.add_argument("--debug", action="store_true")
 
 parser.add_argument("--losses", action="append" )
