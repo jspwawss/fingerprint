@@ -165,7 +165,8 @@ def train(model=None,feature_extractor=None, dataset=None, val_dataset=None, epo
             #    print("[epoch {}/{}] step: {}/{}, loss: {}".format(epoch, epochs, step, len(val_dataset), np.array(val_loss_).mean()))
             val_loss += np.array(val_loss_).mean()
         val_losses.append(val_loss/len(val_dataset))
-        model.save_weights(os.path.join(save_path, save_name + r"_{epoch}-{loss:.2f}.ckpt").format(epoch=epoch, loss=val_losses[-1]))
+        if np.array(train_losses).argmin() == epoch:
+            model.save_weights(os.path.join(save_path, save_name + r"_{epoch}-{loss:.2f}.ckpt").format(epoch=epoch, loss=val_losses[-1]))
         #saver.save(sess, os.path.join(save_path, save_name + r"_{epoch}-{loss:.2f}.pb").format(epoch=epoch, loss=val_losses[-1]))
         print("[epoch {}/{}]  loss: {}".format(epoch, epochs, val_losses[-1]))
         with open(os.path.join(save_path, 'history.txt'), 'a') as txt:

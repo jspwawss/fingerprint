@@ -43,7 +43,7 @@ class kiaraNoise(tf.keras.utils.Sequence):
 
     def __len__(self):
         #print("__len__")
-        return 10
+        
         if not self.debug:
             return len(self.data) // self.batch_size
         else:

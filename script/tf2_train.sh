@@ -1,6 +1,6 @@
 echo "start training"
 python src/tf2_train.py --save_path=/home/share/Han/novatek/ \
---epoch=5 --model=UNet_v8 \
+--epoch=100 --model=UNet_v8 \
 --batch_size=10 \
 --model_name=myModel \
 --dataset=kiaraNoise \
@@ -8,12 +8,16 @@ python src/tf2_train.py --save_path=/home/share/Han/novatek/ \
 --batch_size=1 \
 --datasetfilename='dataset4perceptual'  \
 --print_rate=1000 \
---save_annotation='test' \
+--save_annotation='107' \
 --losses=mse \
+--lr=0.0001 \
+--beta_1=0.85 \
+--beta_2=0.995 \
+#--debug
 #--losses=enMSE \
 #--losses=perceptual \
 #--losses=l1 \
-#--debug
+#
 #
 #
 #
